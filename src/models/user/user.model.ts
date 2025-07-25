@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { IUser } from "./user.interface";
+import e from "express";
 const userSchema = new mongoose.Schema({
   name: {
         firstName: {
@@ -37,7 +38,7 @@ userSchema.methods.getAuthToken = function () {
   if (!secret || typeof secret !== "string") {
     throw new Error("JWT_SECRET environment variable is not defined");
   }
-  return jwt.sign({ _id: this._id}, secret);
+  return jwt.sign({ _id: this._id}, secret,{expiresIn: '24h'});
 };
 
 userSchema.pre('save', async function(next) {
@@ -51,5 +52,5 @@ userSchema.methods.comparePassword = async function(candidatePassword:string) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
- const userModel= mongoose.model<IUser>('User', userSchema);
- export = userModel;
+ const User= mongoose.model<IUser>('User', userSchema);
+ export = User;
