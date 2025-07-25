@@ -193,3 +193,216 @@ Content-Type: application/json
 - The token is sent both in the response body and as an HTTP-only cookie
 - The token contains the user's ID and can be used for authenticated requests
 - Make sure to store the JWT_SECRET in your environment variables
+
+### 3. Get User Profile
+
+Get the authenticated user's profile information.
+
+#### Endpoint
+
+```http
+GET /api/users/profile
+```
+
+#### Description
+
+Returns the profile information of the currently authenticated user. This endpoint requires authentication using a JWT token.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+Either include the token in the Authorization header or as a cookie (automatically set after login).
+
+##### Parameters
+
+No body parameters required. The user is identified from the JWT token.
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  "_id": "user_id_here",
+  "name": {
+    "firstName": "John",
+    "lastName": "Doe"
+  },
+  "email": "john.doe@example.com",
+  "socketId": null
+}
+```
+
+##### Error Responses
+
+**Code:** 401 UNAUTHORIZED
+
+- When no token is provided
+```json
+{
+  "message": "No token provided, authorization denied"
+}
+```
+
+- When token is invalid
+```json
+{
+  "message": "Token is not valid"
+}
+```
+
+- When user not found
+```json
+{
+  "message": "User not found"
+}
+```
+
+- When token payload is invalid
+```json
+{
+  "message": "Token payload invalid"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "message": "Server error"
+}
+```
+
+#### Security
+
+- Requires a valid JWT token obtained from login or registration
+- Token can be sent via Authorization header or cookie
+- Token is validated and decoded to fetch the user information
+- User's existence is verified in the database for each request
+
+#### Response Fields
+
+| Field           | Type   | Description                                    |
+|-----------------|--------|------------------------------------------------|
+| _id             | string | User's unique identifier                       |
+| name.firstName  | string | User's first name                             |
+| name.lastName   | string | User's last name (empty string if not set)    |
+| email           | string | User's email address                          |
+| socketId        | string | null (Used for real-time communication)       |
+
+#### Notes
+
+- The endpoint is protected by the authentication middleware
+- Password and sensitive information are excluded from the response
+- The response includes basic user profile information
+- Socket ID is included for real-time features
+- Make sure to include the token in the request headers or cookies
+
+### 4. User Logout
+
+Logout the currently authenticated user and invalidate their token.
+
+#### Endpoint
+
+```http
+POST /api/users/logout
+```
+
+#### Description
+
+Logs out the user by invalidating their current JWT token and clearing the cookie. The token is added to a blacklist to prevent its reuse. This endpoint requires authentication.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+Either include the token in the Authorization header or as a cookie.
+
+##### Parameters
+
+No body parameters required. The token is obtained from the request headers or cookies.
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  "message": "Logout successful"
+}
+```
+
+##### Error Responses
+
+**Code:** 401 UNAUTHORIZED
+
+- When no token is provided
+```json
+{
+  "message": "No token provided, authorization denied"
+}
+```
+
+- When token is invalid
+```json
+{
+  "message": "Token is not valid"
+}
+```
+
+- When user not found
+```json
+{
+  "message": "User not found"
+}
+```
+
+- When token payload is invalid
+```json
+{
+  "message": "Token payload invalid"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "message": "Server error"
+}
+```
+
+#### Security
+
+- Requires a valid JWT token obtained from login or registration
+- Token can be sent via Authorization header or cookie
+- The provided token is blacklisted to prevent reuse
+- Blacklisted tokens are automatically removed after 24 hours
+- Cookie containing the token is cleared upon successful logout
+
+#### Notes
+
+- The endpoint is protected by the authentication middleware
+- The token is added to a blacklist collection in the database
+- The blacklist has an automatic cleanup after 24 hours
+- The HTTP-only cookie is cleared from the client
+- After logout, the token can no longer be used for authentication
