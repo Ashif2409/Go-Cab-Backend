@@ -1,13 +1,21 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
-import { connectDB } from './db/db_connection';
-
+import cors from 'cors';
 dotenv.config();
+import { connectDB } from './db/db_connection';
+import userRoutes from './routes/user.routes';
+
 
 // Connect to MongoDB
 connectDB();
 // Initialize Express app
 const app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+
+app.use('/api/users', userRoutes);
 app.get('/', (req:Request, res:Response) => {
     res.send('Hello World!');
 });
