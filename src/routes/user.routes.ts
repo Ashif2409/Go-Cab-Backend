@@ -1,5 +1,5 @@
 import express from 'express';
-import { getProfile, loginUser, registerUser } from '../controllers/user.controller';
+import { getProfile, loginUser, logoutUser, registerUser } from '../controllers/user.controller';
 import { authUser } from '../middleware/auth.middleware';
 const {body} = require('express-validator');
 
@@ -25,5 +25,7 @@ router.post(
 )   
 
 router.get('/profile',authUser,getProfile);
+
+router.post('/logout', authUser, logoutUser);
 
 export default router;

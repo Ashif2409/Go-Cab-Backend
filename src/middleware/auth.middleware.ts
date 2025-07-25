@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
 import User from "../models/user/user.model";
+import BlacklistToken from "../models/blacklist_token/blacklist.model";
 
 declare global {
     namespace Express {
@@ -23,7 +24,10 @@ export const authUser = async(req:Request, res:Response, next:NextFunction) => {
     if (!token) {
         return res.status(401).json({ message: 'No token provided, authorization denied' });
     }
-    
+    const isTokenBlacklisted = await BlacklistToken.find({ token }).exec();
+    if (isTokenBlacklisted.length > 0) {
+        return res.status(401).json({ message: 'Token is blacklisted, authorization denied' });
+    }
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
         let user;
