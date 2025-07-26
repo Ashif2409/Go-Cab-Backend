@@ -36,4 +36,38 @@ export const registerDriver = async (req:Request, res:Response) => {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
+}
+
+export const loginDriver = async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
     }
+
+    const { email, password } = req.body;
+
+    try {
+        const driver = await Driver.findOne({ email }).select('+password');
+        if (!driver || !(await driver.comparePassword(password))) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        const token = driver.getAuthToken();
+        res.cookie('token', token);
+
+        res.status(200).json({
+            message: 'Login successful',
+            token
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
+
+export const getDriverProfile = async (req: Request, res: Response) => {
+    return res.status(200).json({
+        message: 'Driver profile fetched successfully',
+        driver: req.driver
+    });
+}

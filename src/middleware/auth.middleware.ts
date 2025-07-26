@@ -19,6 +19,32 @@ declare global {
         }
     }
 }
+declare global {
+    namespace Express {
+        interface Request {
+            driver?: {
+                _id: string;
+                name: {
+                    firstName: string;
+                    lastName: string;
+                };
+                email: string;
+                socketId?: string | null;
+                vehicle?: {
+                    color: string;
+                    plate: string;
+                    capacity: number;
+                    vehicleType: 'car' | 'bike' | 'auto';
+                };
+                location?: {
+                    lat?: number;
+                    lng?: number;
+                };
+                status?: 'active' | 'inactive';
+            };
+        }
+    }
+}
 
 export const authUser = async(req:Request, res:Response, next:NextFunction) => {
     const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
@@ -76,14 +102,25 @@ export const authDriver = async(req:Request, res:Response, next:NextFunction) =>
                 return res.status(401).json({ message: 'Driver not found' });
             }
             if(driver._id && driver.name && driver.email) {
-                req.user = {
+                req.driver = {
                     _id: driver._id.toString(),
                     name: {
                         firstName: driver.name.firstName,
-                        lastName: driver.name.lastName || ''
+                        lastName: driver.name.lastName || '',
                     },
                     email: driver.email,
-                    socketId: driver.socketId ?? null
+                    socketId: driver.socketId ?? null,
+                    vehicle: driver.vehicle ? {
+                        color: driver.vehicle.color,
+                        plate: driver.vehicle.plate,
+                        capacity: driver.vehicle.capacity,
+                        vehicleType: driver.vehicle.vehicleType,
+                    } : undefined,
+                    location: driver.location ? {
+                        lat: driver.location.lat,
+                        lng: driver.location.lng,
+                    } : undefined,
+                    status: driver.status,
                 };
                 next();
             } else {

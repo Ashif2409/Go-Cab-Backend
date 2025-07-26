@@ -446,6 +446,241 @@ Content-Type: application/json
 - Initial status is typically set to 'inactive'
 - Make sure to store the JWT_SECRET in your environment variables
 
+### 2. Driver Login
+
+Authenticate an existing driver and get an access token.
+
+#### Endpoint
+
+```http
+POST /api/drivers/login
+```
+
+#### Description
+
+Authenticates a driver with their email and password, and returns an authentication token upon successful login. The token is also set as an HTTP-only cookie.
+
+#### Request
+
+##### Headers
+
+```http
+Content-Type: application/json
+```
+
+##### Body Parameters
+
+| Parameter | Type   | Required | Description                    |
+|-----------|--------|----------|--------------------------------|
+| email     | string | Yes      | Driver's registered email address|
+| password  | string | Yes      | Driver's password               |
+
+##### Example Request
+
+```json
+{
+  "email": "john.driver@example.com",
+  "password": "password123"
+}
+```
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+##### Error Responses
+
+**Code:** 401 UNAUTHORIZED
+- When credentials are invalid
+```json
+{
+  "message": "Invalid credentials"
+}
+```
+
+**Code:** 400 BAD REQUEST
+- When validation fails
+```json
+{
+  "errors": [
+    {
+      "msg": "Valid email is required",
+      "param": "email",
+      "location": "body"
+    }
+  ]
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "message": "Server error"
+}
+```
+
+#### Notes
+
+- The provided password is compared with the hashed password in the database
+- A JWT token is generated upon successful authentication
+- The token is sent both in the response body and as an HTTP-only cookie
+- The token contains the driver's ID and can be used for authenticated requests
+- The token can be used for driver-specific operations
+- Make sure to store the JWT_SECRET in your environment variables
+
+### 3. Get Driver Profile
+
+Get the authenticated driver's profile information including vehicle and location details.
+
+#### Endpoint
+
+```http
+GET /api/drivers/profile
+```
+
+#### Description
+
+Returns the complete profile information of the currently authenticated driver including their personal details, vehicle information, current location, and status. This endpoint requires authentication using a JWT token.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+Either include the token in the Authorization header or as a cookie (automatically set after login).
+
+##### Parameters
+
+No body parameters required. The driver is identified from the JWT token.
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  "message": "Driver profile fetched successfully",
+  "driver": {
+    "_id": "driver_id_here",
+    "name": {
+      "firstName": "John",
+      "lastName": "Doe"
+    },
+    "email": "john.driver@example.com",
+    "socketId": null,
+    "vehicle": {
+      "color": "Black",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    },
+    "location": {
+      "lat": 12.9716,
+      "lng": 77.5946
+    },
+    "status": "active"
+  }
+}
+```
+
+##### Error Responses
+
+**Code:** 401 UNAUTHORIZED
+
+- When no token is provided
+```json
+{
+  "message": "No token provided, authorization denied"
+}
+```
+
+- When token is invalid
+```json
+{
+  "message": "Token is not valid"
+}
+```
+
+- When driver not found
+```json
+{
+  "message": "Driver not found"
+}
+```
+
+- When token payload is invalid
+```json
+{
+  "message": "Token payload invalid"
+}
+```
+
+- When token is blacklisted
+```json
+{
+  "message": "Token is blacklisted, authorization denied"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "message": "Server error"
+}
+```
+
+#### Security
+
+- Requires a valid JWT token obtained from driver login or registration
+- Token can be sent via Authorization header or cookie
+- Token is validated and decoded to fetch the driver information
+- Driver's existence is verified in the database for each request
+- Token blacklist is checked to prevent use of logged-out tokens
+
+#### Response Fields
+
+| Field               | Type   | Description                                    |
+|---------------------|--------|------------------------------------------------|
+| _id                 | string | Driver's unique identifier                     |
+| name.firstName      | string | Driver's first name                           |
+| name.lastName       | string | Driver's last name (empty string if not set)  |
+| email              | string | Driver's email address                         |
+| socketId           | string | Socket ID for real-time communication         |
+| vehicle.color      | string | Color of the driver's vehicle                 |
+| vehicle.plate      | string | Vehicle's plate number                        |
+| vehicle.capacity   | number | Vehicle's passenger capacity                  |
+| vehicle.vehicleType| string | Type of vehicle (car/bike/auto)              |
+| location.lat       | number | Current latitude coordinate                   |
+| location.lng       | number | Current longitude coordinate                  |
+| status             | string | Driver's current status (active/inactive)     |
+
+#### Notes
+
+- The endpoint is protected by the driver authentication middleware
+- Password and sensitive information are excluded from the response
+- Vehicle information is included for ride matching
+- Location coordinates are included for tracking
+- Status indicates driver's availability
+- Socket ID is included for real-time communication features
+
 #### Endpoint
 
 ```http

@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerDriver } from '../controllers/driver.controller';
+import { getDriverProfile, loginDriver, registerDriver } from '../controllers/driver.controller';
 import { authDriver } from '../middleware/auth.middleware';
 const {body} = require('express-validator');
 const router = express.Router();
@@ -20,5 +20,16 @@ router.post(
   ],
     registerDriver
 );
+
+router.post(
+  '/login',
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+  ],
+  loginDriver
+);
+
+router.get('/profile', authDriver, getDriverProfile);
 
 export default router;
