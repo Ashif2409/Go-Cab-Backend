@@ -312,6 +312,140 @@ No body parameters required. The user is identified from the JWT token.
 
 Logout the currently authenticated user and invalidate their token.
 
+## Driver Endpoints
+
+### 1. Driver Registration
+
+Register a new driver in the system.
+
+#### Endpoint
+
+```http
+POST /api/drivers/register
+```
+
+#### Description
+
+Creates a new driver account with the provided details including vehicle information and initial location. The endpoint validates the input data and returns an authentication token upon successful registration.
+
+#### Request
+
+##### Headers
+
+```http
+Content-Type: application/json
+```
+
+##### Body Parameters
+
+| Parameter | Type   | Required | Description                                          |
+|-----------|--------|----------|------------------------------------------------------|
+| name      | object | Yes      | Driver's name object                                 |
+| name.firstName | string | Yes | First name (minimum 2 characters)                    |
+| name.lastName  | string | No  | Last name (minimum 2 characters if provided)         |
+| email     | string | Yes      | Driver's email address (must be valid email format)  |
+| password  | string | Yes      | Password (minimum 6 characters)                      |
+| vehicle   | object | Yes      | Vehicle information                                  |
+| vehicle.color | string | Yes  | Color of the vehicle (minimum 3 characters)          |
+| vehicle.plate | string | Yes  | Vehicle plate number (minimum 3 characters)          |
+| vehicle.capacity | number | Yes| Vehicle passenger capacity (minimum 1)              |
+| vehicle.vehicleType | string | Yes | Type of vehicle ('car', 'bike', or 'auto')     |
+| location  | object | Yes      | Initial location coordinates                         |
+| location.lat | number | Yes   | Latitude coordinate                                  |
+| location.lng | number | Yes   | Longitude coordinate                                 |
+| status    | string | Yes      | Initial driver status ('active' or 'inactive')       |
+
+##### Example Request
+
+```json
+{
+  "name": {
+    "firstName": "John",
+    "lastName": "Doe"
+  },
+  "email": "john.driver@example.com",
+  "password": "password123",
+  "vehicle": {
+    "color": "Black",
+    "plate": "ABC123",
+    "capacity": 4,
+    "vehicleType": "car"
+  },
+  "location": {
+    "lat": 12.9716,
+    "lng": 77.5946
+  },
+  "status": "inactive"
+}
+```
+
+#### Response
+
+##### Success Response
+
+**Code:** 201 CREATED
+
+```json
+{
+  "message": "Driver registered successfully",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+##### Error Responses
+
+**Code:** 400 BAD REQUEST
+- When validation fails
+```json
+{
+  "errors": [
+    {
+      "msg": "Vehicle color is required",
+      "param": "vehicle.color",
+      "location": "body"
+    }
+  ]
+}
+```
+
+- When driver already exists
+```json
+{
+  "message": "Driver already exists"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "message": "Server error"
+}
+```
+
+#### Validation Rules
+
+- **firstName**: Minimum 2 characters
+- **lastName**: Minimum 2 characters (if provided)
+- **email**: Must be a valid email format and unique in the system
+- **password**: Minimum 6 characters
+- **vehicle.color**: Minimum 3 characters
+- **vehicle.plate**: Minimum 3 characters
+- **vehicle.capacity**: Minimum value of 1
+- **vehicle.vehicleType**: Must be one of: 'car', 'bike', 'auto'
+- **location.lat**: Must be a valid float number
+- **location.lng**: Must be a valid float number
+- **status**: Must be either 'active' or 'inactive'
+
+#### Notes
+
+- The password is automatically hashed before storing in the database
+- A JWT token is generated and returned upon successful registration
+- The token contains the driver's ID and can be used for authenticated requests
+- Vehicle information is required and validated
+- Initial location coordinates are required for tracking
+- Initial status is typically set to 'inactive'
+- Make sure to store the JWT_SECRET in your environment variables
+
 #### Endpoint
 
 ```http
