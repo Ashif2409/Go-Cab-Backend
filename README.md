@@ -14,7 +14,112 @@ POST /api/users/register
 
 ### Description
 
-Creates a new user account with the provided details. The endpoint validates the input data, checks for existing users with the same email, and returns an authentication token upon successful registration.
+Creates a new user account with the provided details. The endpoint validates the input data, #### Notes
+
+- The endpoint is protected by the driver authentication middleware
+- Password and sensitive information are excluded from the response
+- The response includes basic user profile information
+- Socket ID is included for real-time features
+- Make sure to include the token in the request headers or cookies
+
+### 4. Driver Logout
+
+Logout the currently authenticated driver and invalidate their token.
+
+#### Endpoint
+
+```http
+POST /api/drivers/logout
+```
+
+#### Description
+
+Logs out the driver by invalidating their current JWT token and clearing the cookie. The token is added to a blacklist to prevent its reuse. This endpoint requires authentication.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+Either include the token in the Authorization header or as a cookie.
+
+##### Parameters
+
+No body parameters required. The token is obtained from the request headers or cookies.
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  "message": "Driver logged out successfully"
+}
+```
+
+##### Error Responses
+
+**Code:** 401 UNAUTHORIZED
+
+- When no token is provided
+```json
+{
+  "message": "No token provided, authorization denied"
+}
+```
+
+- When token is invalid
+```json
+{
+  "message": "Token is not valid"
+}
+```
+
+- When driver not found
+```json
+{
+  "message": "Driver not found"
+}
+```
+
+- When token is already blacklisted
+```json
+{
+  "message": "Token is blacklisted, authorization denied"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "message": "Server error"
+}
+```
+
+#### Security
+
+- Requires a valid JWT token obtained from driver login or registration
+- Token can be sent via Authorization header or cookie
+- The provided token is blacklisted to prevent reuse
+- Blacklisted tokens are automatically removed after 24 hours
+- Cookie containing the token is cleared upon successful logout
+
+#### Notes
+
+- The endpoint is protected by the driver authentication middleware
+- The token is added to a blacklist collection in the database
+- The blacklist has an automatic cleanup after 24 hours
+- The HTTP-only cookie is cleared from the client
+- After logout, the token can no longer be used for authenticationfor existing users with the same email, and returns an authentication token upon successful registration.
 
 ### Request
 

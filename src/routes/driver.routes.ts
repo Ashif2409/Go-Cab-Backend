@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDriverProfile, loginDriver, registerDriver } from '../controllers/driver.controller';
+import { getDriverProfile, loginDriver, registerDriver, logoutDriver } from '../controllers/driver.controller';
 import { authDriver } from '../middleware/auth.middleware';
 const {body} = require('express-validator');
 const router = express.Router();
@@ -32,4 +32,5 @@ router.post(
 
 router.get('/profile', authDriver, getDriverProfile);
 
+router.post('/logout',authDriver, logoutDriver);
 export default router;
