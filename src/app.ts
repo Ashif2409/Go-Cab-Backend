@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 dotenv.config();
 import { connectDB } from './db/db_connection';
 import userRoutes from './routes/user.routes';
-
+import driverRoutes from './routes/driver.routes';
 
 // Connect to MongoDB
 connectDB();
@@ -19,6 +19,7 @@ app.use(cookieParser());
 
 
 app.use('/api/users', userRoutes);
+app.use('/api/drivers', driverRoutes);
 app.get('/', (req:Request, res:Response) => {
     res.send('Hello World!');
 });
