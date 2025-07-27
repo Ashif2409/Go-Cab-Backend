@@ -119,7 +119,351 @@ No body parameters required. The token is obtained from the request headers or c
 - The token is added to a blacklist collection in the database
 - The blacklist has an automatic cleanup after 24 hours
 - The HTTP-only cookie is cleared from the client
-- After logout, the token can no longer be used for authenticationfor existing users with the same email, and returns an authentication token upon successful registration.
+- After logout, the token can no longer be used for authentication
+
+## Map Endpoints
+
+### 1. Get Coordinates
+
+Convert an address into geographic coordinates using Google Maps Geocoding API.
+
+#### Endpoint
+
+```http
+GET /api/maps/get-coordinates
+```
+
+#### Description
+
+Converts a text address into latitude and longitude coordinates using Google Maps Geocoding API. This endpoint requires authentication and validates the address parameter.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+##### Query Parameters
+
+| Parameter | Type   | Required | Description                                     |
+|-----------|--------|----------|-------------------------------------------------|
+| address   | string | Yes      | The address to convert (minimum 3 characters)   |
+
+##### Example Request
+
+```http
+GET /api/maps/get-coordinates?address=Times Square, New York
+```
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  "lat": 40.7580,
+  "lng": -73.9855
+}
+```
+
+##### Error Responses
+
+**Code:** 400 BAD REQUEST
+- When validation fails
+```json
+{
+  "errors": [
+    {
+      "msg": "Address must be at least 3 characters long",
+      "param": "address",
+      "location": "query"
+    }
+  ]
+}
+```
+
+**Code:** 401 UNAUTHORIZED
+- When no token is provided
+```json
+{
+  "message": "No token provided, authorization denied"
+}
+```
+
+- When token is invalid
+```json
+{
+  "message": "Token is not valid"
+}
+```
+
+- When token is blacklisted
+```json
+{
+  "message": "Token is blacklisted, authorization denied"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "error": "Failed to fetch coordinates"
+}
+```
+
+#### Security
+
+- Requires a valid JWT token for authentication
+- Token can be sent via Authorization header or cookie
+- Protected by user authentication middleware
+- Requires valid Google Maps API key in environment variables
+
+#### Notes
+
+- Uses Google Maps Geocoding API for coordinate conversion
+- Requires GOOGLE_MAP_API environment variable to be set
+- Address parameter must be URL encoded
+- Returns precise latitude and longitude coordinates
+- Error handling for invalid addresses and API failures
+- Rate limiting may apply based on Google Maps API quota
+
+### 2. Get Distance and Time
+
+Calculate the distance and travel time between two locations using Google Maps Distance Matrix API.
+
+#### Endpoint
+
+```http
+GET /api/maps/get-distance-time
+```
+
+#### Description
+
+Calculates the travel distance and estimated duration between two locations. This endpoint requires authentication and uses Google Maps Distance Matrix API.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+##### Query Parameters
+
+| Parameter    | Type   | Required | Description                          |
+|-------------|--------|----------|--------------------------------------|
+| origin      | string | Yes      | Starting location address            |
+| destination | string | Yes      | Ending location address              |
+
+##### Example Request
+
+```http
+GET /api/maps/get-distance-time?origin=Delhi Jama Masjid&destination=Cyber city Gurgaon
+```
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  "distance": "32.5 km",
+  "duration": "1 hour 15 mins"
+}
+```
+
+##### Error Responses
+
+**Code:** 400 BAD REQUEST
+- When validation fails
+```json
+{
+  "errors": [
+    {
+      "msg": "Origin must be a valid address",
+      "param": "origin",
+      "location": "query"
+    }
+  ]
+}
+```
+
+**Code:** 401 UNAUTHORIZED
+- When no token is provided
+```json
+{
+  "message": "No token provided, authorization denied"
+}
+```
+
+- When token is invalid
+```json
+{
+  "message": "Token is not valid"
+}
+```
+
+- When token is blacklisted
+```json
+{
+  "message": "Token is blacklisted, authorization denied"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "error": "Failed to fetch distance and time"
+}
+```
+
+#### Security
+
+- Requires a valid JWT token for authentication
+- Token can be sent via Authorization header or cookie
+- Protected by user authentication middleware
+- Requires valid Google Maps API key in environment variables
+
+#### Notes
+
+- Uses Google Maps Distance Matrix API
+- Both origin and destination addresses must be valid
+- Returns distance in kilometers and duration in human-readable format
+- Considers current traffic conditions (if available)
+- Results may vary based on time of day and traffic
+- All addresses should be URL encoded
+- Rate limiting may apply based on Google Maps API quota
+- Distance and time calculations consider the optimal driving route
+
+### 3. Get Address Suggestions
+
+Get address suggestions as you type using Google Maps Places Autocomplete API.
+
+#### Endpoint
+
+```http
+GET /api/maps/get-suggestions
+```
+
+#### Description
+
+Provides address suggestions based on user input using Google Maps Places Autocomplete API. This endpoint requires authentication and helps users input valid addresses.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+##### Query Parameters
+
+| Parameter | Type   | Required | Description                                     |
+|-----------|--------|----------|-------------------------------------------------|
+| input     | string | Yes      | Text to get address suggestions (min 3 chars)   |
+
+##### Example Request
+
+```http
+GET /api/maps/get-suggestions?input=Times Square
+```
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+[
+  "Times Square, Manhattan, New York, NY, USA",
+  "Times Square–42nd Street/Port Authority Bus Terminal, New York, NY, USA",
+  "Times Square Church, West 51st Street, New York, NY, USA"
+]
+```
+
+##### Error Responses
+
+**Code:** 400 BAD REQUEST
+- When validation fails
+```json
+{
+  "errors": [
+    {
+      "msg": "Input must be a string with at least 3 characters",
+      "param": "input",
+      "location": "query"
+    }
+  ]
+}
+```
+
+**Code:** 401 UNAUTHORIZED
+- When no token is provided
+```json
+{
+  "message": "No token provided, authorization denied"
+}
+```
+
+- When token is invalid
+```json
+{
+  "message": "Token is not valid"
+}
+```
+
+- When token is blacklisted
+```json
+{
+  "message": "Token is blacklisted, authorization denied"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "error": "Failed to fetch autocomplete suggestions"
+}
+```
+
+#### Security
+
+- Requires a valid JWT token for authentication
+- Token can be sent via Authorization header or cookie
+- Protected by user authentication middleware
+- Requires valid Google Maps API key in environment variables
+
+#### Notes
+
+- Uses Google Maps Places Autocomplete API
+- Minimum 3 characters required for suggestions
+- Returns an array of address suggestions
+- Suggestions are sorted by relevance
+- Results include full formatted addresses
+- Input should be URL encoded
+- Rate limiting may apply based on Google Maps API quota
+- Useful for ensuring valid addresses in other endpointsfor existing users with the same email, and returns an authentication token upon successful registration.
 
 ### Request
 
