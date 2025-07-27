@@ -350,6 +350,119 @@ GET /api/maps/get-distance-time?origin=Delhi Jama Masjid&destination=Cyber city 
 - Rate limiting may apply based on Google Maps API quota
 - Distance and time calculations consider the optimal driving route
 
+## Ride Endpoints
+
+### 1. Create Ride
+
+Create a new ride request in the system.
+
+#### Endpoint
+
+```http
+POST /api/ride/create-ride
+```
+
+#### Description
+
+Creates a new ride request with the specified pickup location, dropoff location, and vehicle type. The endpoint calculates the fare based on distance and duration, generates an OTP for ride verification, and assigns a pending status to the ride.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+##### Body Parameters
+
+| Parameter       | Type   | Required | Description                                     |
+|----------------|--------|----------|-------------------------------------------------|
+| pickupLocation | string | Yes      | Starting location address                       |
+| dropoffLocation| string | Yes      | Destination address                            |
+| vehicleType    | string | Yes      | Type of vehicle ('car', 'bike', or 'auto')    |
+
+##### Example Request
+
+```json
+{
+  "pickupLocation": "Delhi Jama Masjid",
+  "dropoffLocation": "Cyber city Gurgaon",
+  "vehicleType": "car"
+}
+```
+
+#### Response
+
+##### Success Response
+
+**Code:** 201 CREATED
+
+```json
+{
+  "_id": "ride_id",
+  "userId": "user_id",
+  "pickupLocation": "Delhi Jama Masjid",
+  "destination": "Cyber city Gurgaon",
+  "fare": 450,
+  "status": "pending",
+  "duration": 75,
+  "distance": 32.5,
+  "OTP": 123456
+}
+```
+
+##### Error Responses
+
+**Code:** 400 BAD REQUEST
+- When validation fails
+```json
+{
+  "errors": [
+    {
+      "msg": "Pickup location is required",
+      "param": "pickupLocation"
+    }
+  ]
+}
+```
+
+**Code:** 401 UNAUTHORIZED
+- When no token is provided
+```json
+{
+  "message": "No token provided, authorization denied"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "error": "Failed to create ride"
+}
+```
+
+#### Security
+
+- Requires a valid JWT token for authentication
+- Token can be sent via Authorization header or cookie
+- Protected by user authentication middleware
+
+#### Notes
+
+- Fare is calculated based on:
+  - Base fare (Car: ₹50, Auto: ₹30, Bike: ₹20)
+  - Per kilometer rate (Car: ₹15/km, Auto: ₹10/km, Bike: ₹7/km)
+  - Time factor (Car: ₹2/min, Auto: ₹1/min, Bike: ₹0.7/min)
+- A 6-digit OTP is generated for ride verification
+- Initial ride status is set to 'pending'
+- Distance and duration are calculated using Google Maps API
+- All addresses should be valid and recognizable by Google Maps
+
 ### 3. Get Address Suggestions
 
 Get address suggestions as you type using Google Maps Places Autocomplete API.
