@@ -71,9 +71,9 @@ export async function getFare(pickup: string, destination: string): Promise<{ au
     const bikeBaseFare = 20;
     const carBaseFare = 50;
 
-    const autoFare = autoBaseFare + (distanceKm * autoRatePerKm) + (durationMin * 1);
-    const bikeFare = bikeBaseFare + (distanceKm * bikeRatePerKm) + (durationMin * 0.7);
-    const carFare = carBaseFare + (distanceKm * carRatePerKm) + (durationMin * 2);
+    const autoFare = Math.round(autoBaseFare + (distanceKm * autoRatePerKm) + (durationMin * 1));
+    const bikeFare = Math.round(bikeBaseFare + (distanceKm * bikeRatePerKm) + (durationMin * 0.7));
+    const carFare = Math.round(carBaseFare + (distanceKm * carRatePerKm) + (durationMin * 2));
 
     return {
         auto: autoFare,
