@@ -1,7 +1,7 @@
 import express from 'express';
-import { createRideController } from '../controllers/ride.controller';
+import { createRideController,getFareController } from '../controllers/ride.controller';
 import { authUser } from '../middleware/auth.middleware';
-const { body } = require('express-validator');
+const { body ,query} = require('express-validator');
 const router = express.Router();
 
 router.post('/create-ride',
@@ -14,4 +14,12 @@ router.post('/create-ride',
     createRideController
 )
 
+router.get('/get-fare',
+    authUser,
+    [
+        query('pickupLocation').notEmpty().withMessage('Pickup location is required'),
+        query('dropoffLocation').notEmpty().withMessage('Dropoff location is required'),
+    ],
+    getFareController
+)
 export default router;

@@ -463,6 +463,117 @@ Cookie: token=<your_jwt_token>
 - Distance and duration are calculated using Google Maps API
 - All addresses should be valid and recognizable by Google Maps
 
+### 2. Get Fare Estimate
+
+Get fare estimates for all vehicle types between two locations.
+
+#### Endpoint
+
+```http
+GET /api/ride/get-fare
+```
+
+#### Description
+
+Calculates estimated fares for all vehicle types (car, bike, and auto) between specified pickup and dropoff locations. The fare calculation includes base fare, per-kilometer rate, and time-based charges.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+##### Query Parameters
+
+| Parameter       | Type   | Required | Description                                     |
+|----------------|--------|----------|-------------------------------------------------|
+| pickupLocation | string | Yes      | Starting location address                       |
+| dropoffLocation| string | Yes      | Destination address                            |
+
+##### Example Request
+
+```http
+GET /api/rides/get-fare?pickupLocation=Delhi Jama Masjid&dropoffLocation=Cyber city Gurgaon
+```
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  "auto": 355.5,
+  "bike": 248.85,
+  "car": 537,
+  "distanceKm": 32.5,
+  "durationMin": 75
+}
+```
+
+##### Error Responses
+
+**Code:** 400 BAD REQUEST
+- When validation fails
+```json
+{
+  "errors": [
+    {
+      "msg": "Pickup location is required",
+      "param": "pickupLocation"
+    }
+  ]
+}
+```
+
+**Code:** 401 UNAUTHORIZED
+- When no token is provided
+```json
+{
+  "message": "No token provided, authorization denied"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "error": "Failed to fetch fare"
+}
+```
+
+#### Security
+
+- Requires a valid JWT token for authentication
+- Token can be sent via Authorization header or cookie
+- Protected by user authentication middleware
+
+#### Notes
+
+- Fare calculation includes:
+  - Base fare:
+    - Car: ₹50
+    - Auto: ₹30
+    - Bike: ₹20
+  - Per kilometer rate:
+    - Car: ₹15/km
+    - Auto: ₹10/km
+    - Bike: ₹7/km
+  - Time factor:
+    - Car: ₹2/min
+    - Auto: ₹1/min
+    - Bike: ₹0.7/min
+- Distance and duration are calculated using Google Maps API
+- All addresses must be valid and recognizable by Google Maps
+- Returns fare estimates for all vehicle types regardless of availability
+- Fare estimates may vary based on traffic conditions and time of day
+
 ### 3. Get Address Suggestions
 
 Get address suggestions as you type using Google Maps Places Autocomplete API.

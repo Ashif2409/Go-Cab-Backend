@@ -46,7 +46,8 @@ const riderSchema = new Schema({
     },
     OTP: {
         type: Number,
-        required: true
+        required: true,
+        select: false
     }, 
 });
 
