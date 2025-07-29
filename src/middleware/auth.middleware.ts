@@ -1,0 +1,134 @@
+import jwt from "jsonwebtoken";
+import { NextFunction, Request, Response } from "express";
+import User from "../models/user/user.model";
+import BlacklistToken from "../models/blacklist_token/blacklist.model";
+import Driver from "../models/driver/driver.model";
+
+declare global {
+    namespace Express {
+        interface Request {
+            user?: {
+                _id: string;
+                name: {
+                    firstName: string;
+                    lastName: string;
+                };
+                email: string;
+                socketId?: string | null;
+            };
+        }
+    }
+}
+declare global {
+    namespace Express {
+        interface Request {
+            driver?: {
+                _id: string;
+                name: {
+                    firstName: string;
+                    lastName: string;
+                };
+                email: string;
+                socketId?: string | null;
+                vehicle?: {
+                    color: string;
+                    plate: string;
+                    capacity: number;
+                    vehicleType: 'car' | 'bike' | 'auto';
+                };
+                location?: {
+                    lat?: number;
+                    lng?: number;
+                };
+                status?: 'active' | 'inactive';
+            };
+        }
+    }
+}
+
+export const authUser = async(req:Request, res:Response, next:NextFunction) => {
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ message: 'No token provided, authorization denied' });
+    }
+    const isTokenBlacklisted = await BlacklistToken.find({ token }).exec();
+    if (isTokenBlacklisted.length > 0) {
+        return res.status(401).json({ message: 'Token is blacklisted, authorization denied' });
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+        let user;
+        if (typeof decoded === "object" && "_id" in decoded) {
+            user = await User.findById(decoded._id);
+            if (!user) {
+                return res.status(401).json({ message: 'User not found' });
+            }
+            if(user._id && user.name && user.email) {
+            req.user = {
+                _id: user._id.toString(),
+                name: {
+                    firstName: user.name.firstName,
+                    lastName: user.name.lastName || ''
+                },
+                email: user.email,
+                socketId: user.socketId ?? null
+            };
+            next();
+        } else {
+            return res.status(401).json({ message: 'Token payload invalid' });
+        }
+    }
+    } catch (error) {
+        console.error(error);
+        res.status(401).json({ message: 'Token is not valid' });
+    }
+}
+
+export const authDriver = async(req:Request, res:Response, next:NextFunction) => {
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ message: 'No token provided, authorization denied' });
+    }
+    const isTokenBlacklisted = await BlacklistToken.find({ token }).exec();
+    if (isTokenBlacklisted.length > 0) {
+        return res.status(401).json({ message: 'Token is blacklisted, authorization denied' });
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+        let driver;
+        if (typeof decoded === "object" && "_id" in decoded) {
+            driver = await Driver.findById(decoded._id);
+            if (!driver) {
+                return res.status(401).json({ message: 'Driver not found' });
+            }
+            if(driver._id && driver.name && driver.email) {
+                req.driver = {
+                    _id: driver._id.toString(),
+                    name: {
+                        firstName: driver.name.firstName,
+                        lastName: driver.name.lastName || '',
+                    },
+                    email: driver.email,
+                    socketId: driver.socketId ?? null,
+                    vehicle: driver.vehicle ? {
+                        color: driver.vehicle.color,
+                        plate: driver.vehicle.plate,
+                        capacity: driver.vehicle.capacity,
+                        vehicleType: driver.vehicle.vehicleType,
+                    } : undefined,
+                    location: driver.location ? {
+                        lat: driver.location.lat,
+                        lng: driver.location.lng,
+                    } : undefined,
+                    status: driver.status,
+                };
+                next();
+            } else {
+                return res.status(401).json({ message: 'Token payload invalid' });
+            }
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(401).json({ message: 'Token is not valid' });
+    }
+}
