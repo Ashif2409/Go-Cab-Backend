@@ -1,12 +1,12 @@
 import { Schema, Types } from "mongoose";
 import mongoose from "mongoose";
 const riderSchema = new Schema({
-    userId: {
+    user: {
         type: Types.ObjectId,
         ref: 'User',
         required: true
     },
-    driverId: {
+    driver: {
         type: Types.ObjectId,
         ref: 'Driver',
     },

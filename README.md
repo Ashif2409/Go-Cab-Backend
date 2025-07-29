@@ -364,7 +364,7 @@ POST /api/ride/create-ride
 
 #### Description
 
-Creates a new ride request with the specified pickup location, dropoff location, and vehicle type. The endpoint calculates the fare based on distance and duration, generates an OTP for ride verification, and assigns a pending status to the ride.
+Creates a new ride request with the specified pickup location, dropoff location, and vehicle type. The endpoint calculates the fare based on distance and duration, generates an OTP for ride verification, and assigns a pending status to the ride. It also notifies nearby drivers (within 5 km) via socket events.
 
 #### Request
 
@@ -380,11 +380,11 @@ Cookie: token=<your_jwt_token>
 
 ##### Body Parameters
 
-| Parameter       | Type   | Required | Description                                     |
-|----------------|--------|----------|-------------------------------------------------|
-| pickupLocation | string | Yes      | Starting location address                       |
-| dropoffLocation| string | Yes      | Destination address                            |
-| vehicleType    | string | Yes      | Type of vehicle ('car', 'bike', or 'auto')    |
+| Parameter        | Type   | Required | Description                       |
+|------------------|--------|----------|-----------------------------------|
+| pickupLocation   | string | Yes      | Starting location address         |
+| dropoffLocation  | string | Yes      | Destination address               |
+| vehicleType      | string | Yes      | Type of vehicle ('car', 'bike', 'auto') |
 
 ##### Example Request
 
@@ -423,10 +423,7 @@ Cookie: token=<your_jwt_token>
 ```json
 {
   "errors": [
-    {
-      "msg": "Pickup location is required",
-      "param": "pickupLocation"
-    }
+    { "msg": "Pickup location is required", "param": "pickupLocation" }
   ]
 }
 ```
@@ -435,7 +432,7 @@ Cookie: token=<your_jwt_token>
 - When no token is provided
 ```json
 {
-  "message": "No token provided, authorization denied"
+  "error": "User not authenticated"
 }
 ```
 
@@ -446,14 +443,7 @@ Cookie: token=<your_jwt_token>
 }
 ```
 
-#### Security
-
-- Requires a valid JWT token for authentication
-- Token can be sent via Authorization header or cookie
-- Protected by user authentication middleware
-
 #### Notes
-
 - Fare is calculated based on:
   - Base fare (Car: ₹50, Auto: ₹30, Bike: ₹20)
   - Per kilometer rate (Car: ₹15/km, Auto: ₹10/km, Bike: ₹7/km)
@@ -462,6 +452,9 @@ Cookie: token=<your_jwt_token>
 - Initial ride status is set to 'pending'
 - Distance and duration are calculated using Google Maps API
 - All addresses should be valid and recognizable by Google Maps
+- Notifies nearby drivers via socket event 'new-ride' (OTP is not sent to drivers)
+
+---
 
 ### 2. Get Fare Estimate
 
@@ -491,15 +484,15 @@ Cookie: token=<your_jwt_token>
 
 ##### Query Parameters
 
-| Parameter       | Type   | Required | Description                                     |
-|----------------|--------|----------|-------------------------------------------------|
-| pickupLocation | string | Yes      | Starting location address                       |
-| dropoffLocation| string | Yes      | Destination address                            |
+| Parameter        | Type   | Required | Description                       |
+|------------------|--------|----------|-----------------------------------|
+| pickupLocation   | string | Yes      | Starting location address         |
+| dropoffLocation  | string | Yes      | Destination address               |
 
 ##### Example Request
 
 ```http
-GET /api/rides/get-fare?pickupLocation=Delhi Jama Masjid&dropoffLocation=Cyber city Gurgaon
+GET /api/ride/get-fare?pickupLocation=Delhi Jama Masjid&dropoffLocation=Cyber city Gurgaon
 ```
 
 #### Response
@@ -510,8 +503,8 @@ GET /api/rides/get-fare?pickupLocation=Delhi Jama Masjid&dropoffLocation=Cyber c
 
 ```json
 {
-  "auto": 355.5,
-  "bike": 248.85,
+  "auto": 355,
+  "bike": 249,
   "car": 537,
   "distanceKm": 32.5,
   "durationMin": 75
@@ -525,10 +518,7 @@ GET /api/rides/get-fare?pickupLocation=Delhi Jama Masjid&dropoffLocation=Cyber c
 ```json
 {
   "errors": [
-    {
-      "msg": "Pickup location is required",
-      "param": "pickupLocation"
-    }
+    { "msg": "Pickup location is required", "param": "pickupLocation" }
   ]
 }
 ```
@@ -537,7 +527,7 @@ GET /api/rides/get-fare?pickupLocation=Delhi Jama Masjid&dropoffLocation=Cyber c
 - When no token is provided
 ```json
 {
-  "message": "No token provided, authorization denied"
+  "error": "User not authenticated"
 }
 ```
 
@@ -548,14 +538,7 @@ GET /api/rides/get-fare?pickupLocation=Delhi Jama Masjid&dropoffLocation=Cyber c
 }
 ```
 
-#### Security
-
-- Requires a valid JWT token for authentication
-- Token can be sent via Authorization header or cookie
-- Protected by user authentication middleware
-
 #### Notes
-
 - Fare calculation includes:
   - Base fare:
     - Car: ₹50
@@ -572,7 +555,254 @@ GET /api/rides/get-fare?pickupLocation=Delhi Jama Masjid&dropoffLocation=Cyber c
 - Distance and duration are calculated using Google Maps API
 - All addresses must be valid and recognizable by Google Maps
 - Returns fare estimates for all vehicle types regardless of availability
-- Fare estimates may vary based on traffic conditions and time of day
+
+---
+
+### 3. Confirm Ride
+
+Driver confirms (accepts) a pending ride.
+
+#### Endpoint
+
+```http
+POST /api/ride/confirm-ride/:rideId
+```
+
+#### Description
+
+Allows an authenticated driver to accept a pending ride. The ride status is updated to 'accepted', and the user is notified via socket event 'ride-confirmed'.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+##### URL Parameters
+
+| Parameter | Type   | Required | Description         |
+|-----------|--------|----------|---------------------|
+| rideId    | string | Yes      | The ride's ObjectId |
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  ...rideObject,
+  "user": { ...userObject }
+}
+```
+
+##### Error Responses
+
+**Code:** 400 BAD REQUEST
+- When rideId is missing or invalid
+```json
+{
+  "error": "Ride ID is required"
+}
+```
+
+**Code:** 401 UNAUTHORIZED
+- When driver is not authenticated
+```json
+{
+  "error": "Driver not authenticated"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "error": "Failed to confirm ride"
+}
+```
+
+#### Notes
+- Only drivers can confirm rides
+- Notifies the user via socket event 'ride-confirmed'
+
+---
+
+### 4. Start Ride
+
+Driver starts the ride after verifying the OTP with the user.
+
+#### Endpoint
+
+```http
+POST /api/ride/ride-start
+```
+
+#### Description
+
+Allows an authenticated driver to start an accepted ride by providing the correct OTP. The ride status is updated to 'ongoing', and the user is notified via socket event 'ride-started'.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+##### Body Parameters
+
+| Parameter | Type   | Required | Description         |
+|-----------|--------|----------|---------------------|
+| rideId    | string | Yes      | The ride's ObjectId |
+| OTP       | number | Yes      | 6-digit ride OTP    |
+
+##### Example Request
+
+```json
+{
+  "rideId": "ride_id",
+  "OTP": 123456
+}
+```
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  ...rideObject,
+  "user": { ...userObject }
+}
+```
+
+##### Error Responses
+
+**Code:** 400 BAD REQUEST
+- When rideId or OTP is missing/invalid
+```json
+{
+  "error": "Ride ID and OTP are required"
+}
+```
+
+**Code:** 401 UNAUTHORIZED
+- When driver is not authenticated
+```json
+{
+  "error": "Driver not authenticated"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "error": "Failed to start ride"
+}
+```
+
+#### Notes
+- Only drivers can start rides
+- Ride must be in 'accepted' status
+- Notifies the user via socket event 'ride-started'
+
+---
+
+### 5. End Ride
+
+Driver ends an ongoing ride.
+
+#### Endpoint
+
+```http
+POST /api/ride/ride-end
+```
+
+#### Description
+
+Allows an authenticated driver to end an ongoing ride. The ride status is updated to 'completed', and the user is notified via socket event 'ride-ended'.
+
+#### Request
+
+##### Headers
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+OR
+```http
+Cookie: token=<your_jwt_token>
+```
+
+##### Body Parameters
+
+| Parameter | Type   | Required | Description         |
+|-----------|--------|----------|---------------------|
+| rideId    | string | Yes      | The ride's ObjectId |
+
+##### Example Request
+
+```json
+{
+  "rideId": "ride_id"
+}
+```
+
+#### Response
+
+##### Success Response
+
+**Code:** 200 OK
+
+```json
+{
+  ...rideObject,
+  "user": { ...userObject }
+}
+```
+
+##### Error Responses
+
+**Code:** 400 BAD REQUEST
+- When rideId is missing/invalid
+```json
+{
+  "error": "Ride ID is required"
+}
+```
+
+**Code:** 401 UNAUTHORIZED
+- When driver is not authenticated
+```json
+{
+  "error": "Driver not authenticated"
+}
+```
+
+**Code:** 500 INTERNAL SERVER ERROR
+```json
+{
+  "error": "Failed to end ride"
+}
+```
+
+#### Notes
+- Only drivers can end rides
+- Ride must be in 'ongoing' status
+- Notifies the user via socket event 'ride-ended'
 
 ### 3. Get Address Suggestions
 

@@ -1,11 +1,11 @@
 import express from 'express';
-import { createRideController,getFareController } from '../controllers/ride.controller';
-import { authUser } from '../middleware/auth.middleware';
+import { confirmRideController, createRideController,getFareController,startRideController,endRideController } from '../controllers/ride.controller';
+import { authDriver, authUser } from '../middleware/auth.middleware';
 const { body ,query} = require('express-validator');
 const router = express.Router();
 
 router.post('/create-ride',
-    authUser,
+    authDriver,
     [
         body('pickupLocation').notEmpty().withMessage('Pickup location is required'),
         body('dropoffLocation').notEmpty().withMessage('Dropoff location is required'),
@@ -15,11 +15,33 @@ router.post('/create-ride',
 )
 
 router.get('/get-fare',
-    authUser,
+    authDriver,
     [
         query('pickupLocation').notEmpty().withMessage('Pickup location is required'),
         query('dropoffLocation').notEmpty().withMessage('Dropoff location is required'),
     ],
     getFareController
 )
+
+router.post('/confirm-ride/:rideId',
+    authDriver,
+    confirmRideController
+);
+
+router.post('/ride-start',
+    authDriver,
+    [
+        body('rideId').notEmpty().withMessage('Ride ID is required'),
+        body('OTP').notEmpty().withMessage('OTP is required'),
+    ],
+    startRideController
+)
+
+router.post('/ride-end',
+    authDriver,
+    [
+        body('rideId').isMongoId().withMessage('Ride ID is required'),
+    ],
+    endRideController
+);
 export default router;

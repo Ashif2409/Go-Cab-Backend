@@ -58,7 +58,7 @@ const driverSchema = new mongoose.Schema({
         },
     },
     location: {
-        lat: {
+        ltd: {
             type: Number
         },
         lng: {

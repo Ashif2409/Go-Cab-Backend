@@ -66,7 +66,7 @@ export const initializeSocket = (server: HTTPServer): Server => {
         });
 
         // Handle location updates (for drivers)
-        socket.on('updateLocation', async (data: { driverId: string; location: { lat: number; lng: number } }) => {
+        socket.on('updateLocation', async (data: { driverId: string; location: { ltd: number; lng: number } }) => {
             try {
                 const driver = await Driver.findById(data.driverId);
                 if (driver && driver.socketId === socket.id) {
@@ -105,17 +105,6 @@ export const sendMessageToSocketId = async (socketId: string, message: SocketMes
         throw new Error('Socket.io not initialized');
     }
 
-    try {
-        const socket = io.sockets.sockets.get(socketId);
-        if (!socket) {
-            console.log(`Socket ${socketId} not found`);
-            return false;
-        }
-
-        socket.emit(message.event, message.data);
-        return true;
-    } catch (error) {
-        console.error('Error sending message to socket:', error);
-        return false;
-    }
+    io.to(socketId).emit(message.event, message.data);
+    return true;
 };

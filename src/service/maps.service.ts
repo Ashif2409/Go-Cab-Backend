@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Driver from '../models/driver/driver.model';
 
 export const getAddressCoordinates = async (address: string): Promise<{ lat: number; lng: number }> => {
     try {
@@ -83,3 +84,20 @@ export const getAutoCompleteSuggestions = async (input: string): Promise<string[
         throw error;
     }
 };
+
+export const getRiderInRadius = async (ltd: number, lng: number, radius: number): Promise<any[]> => {
+    try {
+        const riders = await Driver.find({
+            location: {
+                $geoWithin: {
+                    $centerSphere: [[lng, ltd], radius / 6378.1] // radius in kilometers
+                }
+            }
+        })
+
+        return riders;
+    } catch (error) {
+        console.error('Error fetching riders in radius:', error);
+        throw error;
+    }
+}
